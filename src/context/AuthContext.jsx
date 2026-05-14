@@ -7,7 +7,7 @@ export function AuthProvider({ children }) {
   const [password, setPassword] = useState('')
 
   const login = (pwd) => {
-    const correctPwd = import.meta.env.VITE_APP_PASSWORD || 'Password123!'
+    const correctPwd = 'Password123!'
     if (pwd === correctPwd) {
       setAuthenticated(true)
       sessionStorage.setItem('auth', 'true')

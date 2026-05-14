@@ -1,7 +1,34 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, Component } from 'react'
 import { useAuth } from './context/AuthContext'
 import { parseWixCSV, generateWixCSV, formatPrice, matchPrices, findSkuDiscrepancies } from './lib/utils'
 import { Upload, FileText, CheckCircle, Download, Search, Filter, ArrowRight, ArrowLeft, LogOut, AlertTriangle, Eye, EyeOff, Trash2 } from 'lucide-react'
+
+// Error Boundary
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <h1 style={{ fontSize: 24, color: '#ef4444' }}>Something went wrong</h1>
+          <pre style={{ marginTop: 16, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, fontSize: 13, textAlign: 'left', overflow: 'auto' }}>
+            {this.state.error?.toString()}
+          </pre>
+          <button onClick={() => window.location.reload()} style={{ marginTop: 16, padding: '10px 24px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            Reload
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 // ─── Step Indicator ───
 function StepIndicator({ currentStep }) {
@@ -430,6 +457,7 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'info' })} />
       
