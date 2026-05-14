@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useAuth } from './context/AuthContext'
-import { parseWixCSV, generateWixCSV, formatPrice } from './lib/utils'
+import { parseWixCSV, parseReferencePrices, generateWixCSV, formatPrice } from './lib/utils'
 
 /* ─── Step Indicator ─── */
 function StepIndicator({ currentStep }) {
@@ -143,38 +143,16 @@ export default function App() {
     }
   }, [])
 
-  // Parse reference prices
-  const handleReferenceUpload = useCallback((content) => {
+  // Parse reference prices (CSV or Excel converted to CSV)
+  const handleReferenceUpload = useCallback((content, filename) => {
     try {
-      const lines = content.split('\n')
-      if (lines.length < 2) { showToast('File is empty', 'error'); return }
-
-      // Try comma, then semicolon separator
-      let sep = ','
-      let headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-      let skuIdx = headers.findIndex(h => h.includes('sku'))
-      let rrpIdx = headers.findIndex(h => h.includes('rrp') || h.includes('price') || h.includes('zar'))
-
-      if (skuIdx === -1 || rrpIdx === -1) {
-        headers = lines[0].split(';').map(h => h.trim().toLowerCase())
-        skuIdx = headers.findIndex(h => h.includes('sku'))
-        rrpIdx = headers.findIndex(h => h.includes('rrp') || h.includes('price'))
-        if (skuIdx >= 0 && rrpIdx >= 0) sep = ';'
+      const result = parseReferencePrices(content)
+      if (result.prices.length === 0) {
+        showToast('No valid price data found. Make sure the file has SKU and price columns.', 'error')
+        return
       }
-
-      if (skuIdx === -1) { showToast('Could not find SKU column. Expected a column with "sku" in the name.', 'error'); return }
-      if (rrpIdx === -1) { showToast('Could not find price column. Expected a column with "rrp" or "price" in the name.', 'error'); return }
-
-      const prices = []
-      for (let i = 1; i < lines.length; i++) {
-        const vals = lines[i].split(sep).map(v => v.trim())
-        const sku = vals[skuIdx]
-        const rrp = parseFloat(vals[rrpIdx]?.replace(/[^0-9.]/g, ''))
-        if (sku && !isNaN(rrp)) prices.push({ sku: sku.toUpperCase().trim(), rrp })
-      }
-
-      setReferencePrices(prices)
-      showToast('Loaded ' + prices.length + ' reference prices', 'success')
+      setReferencePrices(result.prices)
+      showToast('Loaded ' + result.prices.length + ' reference prices' + (result.skipped > 0 ? ' (' + result.skipped + ' rows skipped)' : ''), 'success')
     } catch (err) {
       showToast('Error: ' + err.message, 'error')
     }
